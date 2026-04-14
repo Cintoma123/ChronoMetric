@@ -1,0 +1,98 @@
+{
+  "name": "chronometric",
+  "displayName": "ChronoMetric",
+  "description": "Local-first VS Code developer productivity and activity tracking extension.",
+  "version": "0.0.1",
+  "publisher": "chronometric",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "chronometric.viewTodayStats",
+        "title": "ChronoMetric: View Today's Stats"
+      },
+      {
+        "command": "chronometric.showMonthlyTrends",
+        "title": "ChronoMetric: Show Monthly Trends"
+      },
+      {
+        "command": "chronometric.setDailyGoals",
+        "title": "ChronoMetric: Set Daily Goals"
+      },
+      {
+        "command": "chronometric.viewProductivityInsights",
+        "title": "ChronoMetric: View Productivity Insights"
+      }
+    ],
+    "configuration": {
+      "title": "ChronoMetric",
+      "properties": {
+        "chronometric.pauseTracking": {
+          "type": "boolean",
+          "default": false,
+          "description": "Pause all ChronoMetric tracking in this VS Code instance."
+        },
+        "chronometric.idleThresholdMinutes": {
+          "type": "number",
+          "default": 5,
+          "minimum": 5,
+          "maximum": 10,
+          "description": "Minutes of inactivity before the session is considered idle."
+        },
+        "chronometric.excludedGlobs": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Glob patterns excluded from activity tracking."
+        },
+        "chronometric.excludedRepos": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Repository root paths excluded from tracking and analytics."
+        },
+        "chronometric.aggregationMode": {
+          "type": "string",
+          "default": "lazy",
+          "enum": [
+            "lazy",
+            "incremental"
+          ],
+          "description": "How aggregation jobs are evaluated when computing metrics."
+        },
+        "chronometric.gitPollingMinutes": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 60,
+          "description": "Git polling interval in minutes for commit snapshots."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "clean": "node -e \"const fs=require('fs'); const p='out'; if(fs.existsSync(p)){fs.rmSync(p,{recursive:true,force:true});}\"",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run clean && npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^22.8.2",
+    "@types/vscode": "^1.95.0",
+    "typescript": "^5.6.3"
+  }
+}
