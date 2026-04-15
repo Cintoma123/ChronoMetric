@@ -89,6 +89,7 @@ export class GitWorkspaceResolver implements vscode.Disposable {
   }
 
   private normalizePath(input: string): string {
-    return path.resolve(input).replace(/\\/g, "/").toLowerCase();
+    const normalized = path.resolve(input).replace(/\\/g, "/");
+    return process.platform === "win32" ? normalized.toLowerCase() : normalized;
   }
 }

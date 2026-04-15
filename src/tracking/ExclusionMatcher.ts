@@ -27,18 +27,21 @@ export class ExclusionMatcher {
     const normalizedRepo = this.normalizePath(repoPath);
     return excludedRepos.some((candidate) => {
       const normalizedCandidate = this.normalizePath(candidate);
-      return normalizedRepo.startsWith(normalizedCandidate);
+      return (
+        normalizedRepo === normalizedCandidate ||
+        normalizedRepo.startsWith(`${normalizedCandidate}/`)
+      );
     });
   }
 
   private matchesGlob(filePath: string, globPattern: string): boolean {
-    const normalizedPattern = this.normalizePath(globPattern);
+    const normalizedPattern = globPattern.replace(/\\/g, "/").toLowerCase();
     const escaped = normalizedPattern
       .replace(/[.+^${}()|[\]\\]/g, "\\$&")
       .replace(/\*\*/g, "@@DOUBLE_STAR@@")
       .replace(/\*/g, "[^/]*")
       .replace(/@@DOUBLE_STAR@@/g, ".*")
-      .replace(/\?/g, ".");
+      .replace(/\?/g, "[^/]");
 
     const regex = new RegExp(`^${escaped}$`, "i");
     return regex.test(filePath);

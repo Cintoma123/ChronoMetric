@@ -13,6 +13,11 @@ import { GitWorkspaceResolver } from "../git/GitWorkspaceResolver";
 import { EventNormalizer } from "../tracking/EventNormalizer";
 import { EventTracker } from "../tracking/EventTracker";
 import { ExclusionMatcher } from "../tracking/ExclusionMatcher";
+import { AggregationScheduler } from "../aggregation/AggregationScheduler";
+import { ProductivityAnalyticsService } from "../analytics/ProductivityAnalyticsService";
+import { SessionAnalyticsService } from "../analytics/SessionAnalyticsService";
+import { LanguageAnalyticsService } from "../analytics/LanguageAnalyticsService";
+import { StreakAnalyticsService } from "../analytics/StreakAnalyticsService";
 
 export class ServiceContainer implements vscode.Disposable {
   private readonly managedDisposables: vscode.Disposable[] = [];
@@ -23,6 +28,11 @@ export class ServiceContainer implements vscode.Disposable {
   private gitWorkspaceResolver?: GitWorkspaceResolver;
   private eventTracker?: EventTracker;
   private gitTracker?: GitTracker;
+  private aggregationScheduler?: AggregationScheduler;
+  private productivityAnalytics?: ProductivityAnalyticsService;
+  private sessionAnalytics?: SessionAnalyticsService;
+  private languageAnalytics?: LanguageAnalyticsService;
+  private streakAnalytics?: StreakAnalyticsService;
   private storagePaths?: ChronoMetricStoragePaths;
 
   public constructor(private readonly context: vscode.ExtensionContext) {}
@@ -55,7 +65,23 @@ export class ServiceContainer implements vscode.Disposable {
     await this.gitTracker.start();
     this.managedDisposables.push(this.gitTracker);
 
-    const commandDisposables = CommandRegistrar.register(this.configService);
+    this.aggregationScheduler = new AggregationScheduler(this.configService, this.persistenceService);
+    await this.aggregationScheduler.start();
+    this.managedDisposables.push(this.aggregationScheduler);
+
+    this.productivityAnalytics = new ProductivityAnalyticsService(this.persistenceService);
+    this.sessionAnalytics = new SessionAnalyticsService(this.persistenceService);
+    this.languageAnalytics = new LanguageAnalyticsService(this.persistenceService);
+    this.streakAnalytics = new StreakAnalyticsService(this.persistenceService);
+
+    const commandDisposables = CommandRegistrar.register(
+      this.configService,
+      this.aggregationScheduler,
+      this.productivityAnalytics,
+      this.sessionAnalytics,
+      this.languageAnalytics,
+      this.streakAnalytics
+    );
     this.managedDisposables.push(...commandDisposables);
 
     const configChangeDisposable = this.configService.onDidChange((nextConfig) => {
@@ -84,6 +110,8 @@ export class ServiceContainer implements vscode.Disposable {
     });
 
     this.statusBarController.setReady(currentConfig, this.persistenceService.getMode());
+    const todayStats = await this.productivityAnalytics.getTodayStats();
+    this.statusBarController.setLiveSummary(todayStats);
     void this.context.globalState.update("chronometric.storagePaths", this.storagePaths);
     void this.context.globalState.update("chronometric.persistenceMode", this.persistenceService.getMode());
   }

@@ -1,5 +1,6 @@
 import { DatabaseManager } from "../DatabaseManager";
 import {
+  AggregationWatermarkRecord,
   DailyStatRecord,
   HourlyStatRecord,
   LanguageStatRecord,
@@ -28,5 +29,29 @@ export class StatsRepository {
 
   public async insertSettingsSnapshot(record: SettingsSnapshotRecord): Promise<number> {
     return this.database.insert("settings_snapshot", record);
+  }
+
+  public async listHourly(): Promise<HourlyStatRecord[]> {
+    return this.database.list<HourlyStatRecord>("hourly_stats");
+  }
+
+  public async listDaily(): Promise<DailyStatRecord[]> {
+    return this.database.list<DailyStatRecord>("daily_stats");
+  }
+
+  public async listLanguage(): Promise<LanguageStatRecord[]> {
+    return this.database.list<LanguageStatRecord>("language_stats");
+  }
+
+  public async listMonthly(): Promise<MonthlyMetricRecord[]> {
+    return this.database.list<MonthlyMetricRecord>("monthly_metrics");
+  }
+
+  public async getWatermark(pipeline: string): Promise<AggregationWatermarkRecord | undefined> {
+    return this.database.getOneBy<AggregationWatermarkRecord>("aggregation_watermarks", { pipeline });
+  }
+
+  public async upsertWatermark(record: AggregationWatermarkRecord): Promise<number> {
+    return this.database.upsert("aggregation_watermarks", ["pipeline"], record);
   }
 }
