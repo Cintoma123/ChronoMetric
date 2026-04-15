@@ -7,6 +7,12 @@ import { ChronoMetricStoragePaths } from "./types";
 import { CommandRegistrar } from "../ui/commands/CommandRegistrar";
 import { StatusBarController } from "../ui/statusbar/StatusBarController";
 import { PersistenceService } from "../storage/PersistenceService";
+import { GitProcessRunner } from "../git/GitProcessRunner";
+import { GitTracker } from "../git/GitTracker";
+import { GitWorkspaceResolver } from "../git/GitWorkspaceResolver";
+import { EventNormalizer } from "../tracking/EventNormalizer";
+import { EventTracker } from "../tracking/EventTracker";
+import { ExclusionMatcher } from "../tracking/ExclusionMatcher";
 
 export class ServiceContainer implements vscode.Disposable {
   private readonly managedDisposables: vscode.Disposable[] = [];
@@ -14,6 +20,9 @@ export class ServiceContainer implements vscode.Disposable {
   private configService?: ConfigService;
   private statusBarController?: StatusBarController;
   private persistenceService?: PersistenceService;
+  private gitWorkspaceResolver?: GitWorkspaceResolver;
+  private eventTracker?: EventTracker;
+  private gitTracker?: GitTracker;
   private storagePaths?: ChronoMetricStoragePaths;
 
   public constructor(private readonly context: vscode.ExtensionContext) {}
@@ -24,11 +33,27 @@ export class ServiceContainer implements vscode.Disposable {
     this.configService = new ConfigService();
     this.statusBarController = new StatusBarController();
     this.persistenceService = new PersistenceService(this.storagePaths);
+    this.gitWorkspaceResolver = new GitWorkspaceResolver();
 
     this.statusBarController.setInitializing();
-    this.managedDisposables.push(this.configService, this.statusBarController, this.persistenceService);
+    this.managedDisposables.push(this.configService, this.statusBarController, this.persistenceService, this.gitWorkspaceResolver);
 
     await this.persistenceService.start();
+
+    const exclusionMatcher = new ExclusionMatcher(() => this.configService!.getSnapshot());
+    const eventNormalizer = new EventNormalizer(this.gitWorkspaceResolver);
+    this.eventTracker = new EventTracker(this.configService, this.persistenceService, exclusionMatcher, eventNormalizer);
+    this.eventTracker.start();
+    this.managedDisposables.push(this.eventTracker);
+
+    this.gitTracker = new GitTracker(
+      this.configService,
+      this.persistenceService,
+      this.gitWorkspaceResolver,
+      new GitProcessRunner()
+    );
+    await this.gitTracker.start();
+    this.managedDisposables.push(this.gitTracker);
 
     const commandDisposables = CommandRegistrar.register(this.configService);
     this.managedDisposables.push(...commandDisposables);
