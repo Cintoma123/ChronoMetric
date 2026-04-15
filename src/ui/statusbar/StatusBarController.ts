@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { ChronoMetricConfig } from "../../core/types";
 import { PersistenceMode } from "../../storage/types";
+import { TodayStatsDto } from "../../analytics/types";
 
 export class StatusBarController implements vscode.Disposable {
   private readonly item: vscode.StatusBarItem;
@@ -29,6 +30,21 @@ export class StatusBarController implements vscode.Disposable {
       "Click to view today's stats"
     ].join("\n");
     this.item.backgroundColor = undefined;
+  }
+
+  public setLiveSummary(stats: TodayStatsDto): void {
+    const totalMinutes = Math.floor(stats.activeMs / (60 * 1000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const progress = Math.round(stats.productivityScore * 100);
+
+    this.item.text = `$(clock) ${hours}h${String(minutes).padStart(2, "0")}m | $(git-commit) ${stats.commits} | Score ${progress}%`;
+    this.item.tooltip = [
+      `Tracked active: ${hours}h ${minutes}m`,
+      `Commits: ${stats.commits}`,
+      `Lines written: ${stats.linesWritten}`,
+      `Productivity: ${progress}%`
+    ].join("\n");
   }
 
   public setError(errorMessage: string): void {
